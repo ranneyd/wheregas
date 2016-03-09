@@ -7,17 +7,19 @@
 Distance: <input type="text" id="distance">
 Car MPG: <input type="text" id ="mpg">
 <button id="go">Where Gas?</button>
-<p id="where">I don't know yet</p>
+<div id="where">
+    <p>I don't know yet</p>
+</div>
 
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
 <script type="text/javascript">
 'use strict';
-var key = "rfej9napna";
+var key = "zrau1zwwbv";
 
 function findGas (position) {
     let apiUrl = `http://api.mygasfeed.com/stations/radius/`;
-    apiUrl += `${position.coords.latitude}/${position.coords.longitude}/5/reg/price/${key}.json`;
+    apiUrl += `${position.coords.latitude}/${position.coords.longitude}/2/reg/price/${key}.json`;
     $.ajax({
         url: apiUrl,
         type: "GET",
@@ -25,13 +27,64 @@ function findGas (position) {
         jsonp: "callback",
         success: (data) => {
             console.log(data);
-            $("#where").html(":D");
+
+            let mpg = 25;
+            let gallonsNeeded = 10;
+            let type = "reg";
+
+            let gasInfo = station => {
+                let distance = /^(\d+(\.\d+)?)/.exec(station.distance)[0];
+                let price = (Number(station[`${type}_price`]) * 2.39/3.47).toFixed(2);
+                
+                let gasPrice = (gallonsNeeded * price).toFixed(2);
+                let gasCost = (distance / mpg * price).toFixed(2);
+                let priceForMe = (gasPrice + gasCost).toFixed(2);
+
+                return {
+                    date: station[`${type}_date`],
+                    address: station.address,
+                    googleHappyAddress: station.address.replace(" ", "+"),
+                    type: station.station,
+                    distance: distance,
+                    price: price,
+                    gasPrice: gasPrice,
+                    gasCost: gasCost,
+                    priceForMe: priceForMe
+                };
+            };
+
+            let bestStation = gasInfo(data.stations[0]);
+            let stationCount = data.stations.length;
+
+            for(let i = 1; i < stationCount; ++i) {
+                let thisStation = gasInfo(data.stations[i]);
+                
+                let noCredit = ["Arco", "Valero"].indexOf(thisStation.type) === -1;
+
+                if( !noCredit &&  thisStation.priceForMe < bestStation.priceForMe ){
+                    bestStation = thisStation;
+                }
+            }
+
+            let ourDiv = $("#where");
+            ourDiv.html("");
+            ourDiv.append($("<p>").html(`Address: ${bestStation.address}`));
+            let googleMapsKey = "AIzaSyCe4lmDWG0-IkmIJ01Pn38SVlwUnKeYvOo";
+            let googleMapsUrl = `https://www.google.com/maps/embed/v1/place?key=${googleMapsKey}&q=${bestStation.googleHappyAddress}`;
+            ourDiv.append($(`<iframe width="600" height="450" frameborder="0" style="border:0">`).attr("src",googleMapsUrl));
+            ourDiv.append($("<p>").html(`Type: ${bestStation.type}`));
+            ourDiv.append($("<p>").html(`Distance: ${bestStation.distance} miles`));
+            ourDiv.append($("<p>").html(`Price per Gallon: $${bestStation.price} (ESTIMATE based on data updated ${bestStation.date})`));
+            ourDiv.append($("<p>").html(`You pay: $${bestStation.gasPrice} for the gas`));
+            ourDiv.append($("<p>").html(`And spend: $${bestStation.gasCost} for the gas needed to get there`));
+            ourDiv.append($("<p>").html(`For a total of: $${bestStation.priceForMe}`));
         }
     });
 }
 
 $("#go").click(() =>{
     if(navigator.geolocation) {
+        $("#where").html("loading");
         navigator.geolocation.getCurrentPosition(findGas);
     }
     else {
