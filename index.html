@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Where Gas</title>
+</head>
+<body>
+Distance: <input type="text" id="distance">
+Car MPG: <input type="text" id ="mpg">
+<button id="go">Where Gas?</button>
+<p id="where">I don't know yet</p>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<script type="text/javascript">
+'use strict';
+var key = "rfej9napna";
+
+function findGas (position) {
+    let apiUrl = `http://api.mygasfeed.com/stations/radius/`;
+    apiUrl += `${position.coords.latitude}/${position.coords.longitude}/5/reg/price/${key}.json`;
+    $.ajax({
+        url: apiUrl,
+        type: "GET",
+        dataType: "jsonp",
+        jsonp: "callback",
+        success: (data) => {
+            console.log(data);
+            $("#where").html(":D");
+        }
+    });
+}
+
+$("#go").click(() =>{
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(findGas);
+    }
+    else {
+        $("#where").html("This isn't going to work unless you enable location");
+    }
+});
+
+
+
+</script>
+
+</body>
+</html>
