@@ -26,7 +26,6 @@ function findGas (position) {
         dataType: "jsonp",
         jsonp: "callback",
         success: (data) => {
-            console.log(data);
 
             let mpg = 25;
             let gallonsNeeded = 10;
@@ -34,11 +33,11 @@ function findGas (position) {
 
             let gasInfo = station => {
                 let distance = /^(\d+(\.\d+)?)/.exec(station.distance)[0];
-                let price = (Number(station[`${type}_price`]) * 2.39/3.47).toFixed(2);
+                let price = Number(station[`${type}_price`]) * 2.39/3.47;
                 
-                let gasPrice = (gallonsNeeded * price).toFixed(2);
-                let gasCost = (distance / mpg * price).toFixed(2);
-                let priceForMe = (gasPrice + gasCost).toFixed(2);
+                let gasPrice = gallonsNeeded * price;
+                let gasCost = distance / mpg * price;
+                let priceForMe = gasPrice + gasCost;
 
                 return {
                     date: station[`${type}_date`],
@@ -46,22 +45,24 @@ function findGas (position) {
                     googleHappyAddress: station.address.replace(" ", "+"),
                     type: station.station,
                     distance: distance,
-                    price: price,
-                    gasPrice: gasPrice,
-                    gasCost: gasCost,
-                    priceForMe: priceForMe
+                    price: price.toFixed(2),
+                    gasPrice: gasPrice.toFixed(2),
+                    gasCost: gasCost.toFixed(2),
+                    priceForMe: priceForMe.toFixed(2)
                 };
             };
 
-            let bestStation = gasInfo(data.stations[0]);
+            let bestStation = {priceForMe: Number.MAX_VALUE};
             let stationCount = data.stations.length;
 
-            for(let i = 1; i < stationCount; ++i) {
+            console.log(stationCount);
+
+            for(let i = 0; i < stationCount; ++i) {
                 let thisStation = gasInfo(data.stations[i]);
                 
-                let noCredit = ["Arco", "Valero"].indexOf(thisStation.type) === -1;
+                let takesCredit = ["Arco", "Valero"].indexOf(thisStation.type) === -1;
 
-                if( !noCredit &&  thisStation.priceForMe < bestStation.priceForMe ){
+                if( takesCredit &&  (thisStation.priceForMe < bestStation.priceForMe )){
                     bestStation = thisStation;
                 }
             }
